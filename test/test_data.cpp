@@ -8,6 +8,8 @@
  */
 #include "test_factory.h"
 #include <common/data.h>
+#include <set>
+#include <stdlib.h>
 #include <unordered_map>
 
 /**
@@ -128,7 +130,7 @@ void TestGndTruth() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int32_t flowkey[10] = {0x1F1F1, 0x2F2F2, 0x1F1F1, 0x3F3F3, 0x4F4F4,
                                  0x1F1F1, 0x2F2F2, 0x3F3F3, 0x5F5F5, 0x1F1F1};
@@ -254,7 +256,7 @@ void TestEqualRange() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int64_t flowkey[12] = {0x1F1F1, 0x2F2F2, 0x1F1F1, 0x3F3F3,
                                  0x4F4F4, 0x1F1F1, 0x2F2F2, 0x3F3F3,
@@ -337,7 +339,7 @@ void TestHeavyHitter() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int32_t flowkey[22] = {0xa, 0x3, 0x8, 0x8, 0x8, 0x8, 0x1, 0x5,
                                  0x5, 0x2, 0x5, 0x9, 0x1, 0x4, 0x4, 0x5,
@@ -418,7 +420,7 @@ void TestHeavyHitter() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int64_t flowkey[32] = {0x1, 0x3, 0x8, 0xa, 0x8, 0xa, 0x1, 0x5,
                                  0x5, 0x2, 0x5, 0x9, 0x1, 0x4, 0x4, 0x6,
@@ -483,7 +485,7 @@ void TestHeavyHitter() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int64_t flowkey[32] = {0x1, 0x3, 0x8, 0xa, 0x8, 0xa, 0x1, 0x5,
                                  0x5, 0x2, 0x5, 0x9, 0x1, 0x4, 0x4, 0x6,
@@ -586,7 +588,7 @@ void TestHeavyChanger() {
     DataFormat format(*array["name"].as_array());
 
     char name[L_tmpnam];
-    std::tmpnam(name);
+    mkstemp(name);
 
     const int32_t flowkey[32] = {0x1, 0x3, 0x8, 0xa, 0x8, 0xa, 0x1, 0x5,
                                  0x5, 0x2, 0x5, 0x9, 0x1, 0x4, 0x4, 0x6,
@@ -734,7 +736,7 @@ OmniSketch::Data::GndTruth<4> ReturnAGroundTruth(int32_t value) {
   DataFormat format(*array["name"].as_array());
 
   char name[L_tmpnam];
-  std::tmpnam(name);
+  mkstemp(name);
 
   const int32_t flowkey[10] = {0x1F1F1, 0x2F2F2, 0x1F1F1, 0x3F3F3, 0x4F4F4,
                                0x1F1F1, 0x2F2F2, 0x3F3F3, 0x5F5F5, 0x1F1F1};

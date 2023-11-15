@@ -34,6 +34,7 @@ include_directories(third_party/eigen)
 
 # ---- Boost libraries ----
 
+set(BOOST_ROOT /home/hc/software/boost_1_82_0/) # add this because my boost is not at normal place
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
