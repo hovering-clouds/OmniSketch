@@ -40,6 +40,35 @@ int32_t NextPrime(int32_t n) {
   return n;
 }
 
+int32_t ExtendedGCD(int32_t m, int32_t n, int32_t& x, int32_t& y){
+  assert(m>=0 && n>=0);
+  if (m==0){
+    x = 0;
+    y = 1;
+    return n;
+  }
+  int32_t x1,y1,gcd;
+  gcd = ExtendedGCD(n%m, m, x1, y1);
+  x = y1-(n/m)*x1;
+  y = x1;
+  return gcd;
+}
+
+bool IsCoprime(int32_t m, int32_t n){
+  assert(m>=0 && n>=0);
+  int32_t x,y,gcd;
+  gcd = ExtendedGCD(m,n,x,y);
+  return gcd==1;
+}
+
+int32_t MulInverse(int32_t m, int32_t n){
+  assert(m>=0 && n>=0);
+  int32_t x,y,gcd;
+  gcd = ExtendedGCD(m,n,x,y);
+  assert(gcd==1);
+  return (x+n)%n;
+}
+
 uint16_t Net2Host16(uint16_t val) {
   if (Endianness())
     return val;

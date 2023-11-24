@@ -11,6 +11,8 @@
 #include <string_view>
 #include <toml++/toml.h>
 #include <vector>
+#include <map>
+#include <algorithm>
 
 /**
  * @brief Utils of manipulating integers, parsing configuration files and so on.
@@ -54,6 +56,46 @@ bool IsPrime(int32_t n);
  * @warning `n` must be positive. Otherwise an exception would be thrown.
  */
 int32_t NextPrime(int32_t n);
+/**
+ * @brief Extended Euclidean algorithm
+ * 
+ * @param m first number
+ * @param n second number
+ * @param x coeff of first number such that m*x+n*y=gcd(m,n)
+ * @param y coeff of second number such that m*x+n*y=gcd(m,n)
+ * @return int32_t gcd(m,n)
+ * @todo test overflow cases
+ */
+int32_t ExtendedGCD(int32_t m, int32_t n, int32_t& x, int32_t& y);
+/**
+ * @brief check if gcd(m,n)=1
+ * 
+ * @param m first number
+ * @param n second number
+ * @return true if gcd(m,n)=1
+ * @return false otherwise
+ */
+bool IsCoprime(int32_t m, int32_t n);
+/**
+ * @brief compute the multiplicative inverse of `m` modula `n`
+ * @return uint32_t m2 such that m*m2=1(mod n)
+ */
+int32_t MulInverse(int32_t m, int32_t n);
+
+/**
+ * @brief Get the nth largest elem. Here n=0 is the largest
+ * 
+ * @tparam T a numeric type used in sketch
+ * @param _begin begin of a T array
+ * @param _end end of a T array
+ * @param n 
+ * @return T nth largest element
+ */
+template<typename T>
+T getNthLargestElem(const T* _begin, const T* _end, size_t n);
+
+template<typename K>
+void insertCntMap(std::map<K, int32_t>& mp, K key);
 /**
  * @brief Convert a 2-byte word from network endian to the host endian
  *
@@ -359,6 +401,30 @@ template <typename T> T DynamicIntX<T>::operator+(T val) {
     T add = constant + counter - (negate & (constant - 1));
     counter = add % constant;
     return -(negate_overflow + 1 - (add / constant));
+  }
+}
+
+template<typename T>
+T getNthLargestElem(const T* _begin, const T* _end, size_t n){
+  size_t num = _end-_begin;
+  #ifdef DEBUG_ACS
+  assert(n<num);
+  #endif
+  T* array = new T[num];
+  memcpy(array, _begin, num*sizeof(T));
+  std::nth_element(array, array+n, array+num, std::greater<T>());
+  T ret = array[n];
+  delete[] array;
+  return ret;
+}
+
+template<typename K>
+void insertCntMap(std::map<K, int32_t>& mp, K key){
+  auto it = mp.find(key);
+  if(it!=mp.end()){
+    it->second++;
+  } else {
+    mp.insert(std::make_pair(key, 1));
   }
 }
 
