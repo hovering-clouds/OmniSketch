@@ -45,6 +45,25 @@
   width_cnt = [10, 7]
   no_hash = [3]
 
+[ACS] # Additive Counter Sharing
+  
+  [ACS.config]
+    sketch = ["CM", ]
+    data = "../data/data-100K.bin"
+    format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
+    ratio = 4
+    K = 8
+
+  [ACS.CM]
+    [ACS.CM.para]
+      depth = 5
+      width = 80001
+      offset = 0
+      cnt_method = "InPacket"
+    [ACS.CM.test]
+    update = ["RATE"]
+    query = ["RATE", "ARE", "AAE"]
+
 [HP] # Hash Pipe
 
   [HP.para]

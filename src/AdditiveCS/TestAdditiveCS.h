@@ -1,47 +1,35 @@
 /**
- * @file CMSketchTest.h
- * @author dromniscience (you@domain.com)
- * @brief Test Count Min Sketch
+ * @file AdditiveCSTest.h
+ * @author hc (you@domain.com)
+ * @brief Test Additive Counter Shaing
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023
  *
  */
 #pragma once
 
 #include <common/test.h>
-#include <sketch/CMSketch.h>
+#include <sketch/ACS_CMSketch.h>
 
-#define CM_PARA_PATH "CM.para"
-#define CM_TEST_PATH "CM.test"
-#define CM_DATA_PATH "CM.data"
+#define ACS_CONFIG_PATH "ACSCM.para"
+#define ACS_CM_TEST_PATH "ACSCM.CM.test"
+#define ACS_CM_PARA_PATH "ACSCM.CM.data"
+using OmniSketch::Counter::ACScounter;
 
 namespace OmniSketch::Test {
 
 /**
- * @brief Testing class for Count Min Sketch
+ * @brief Testing class for ACS
  *
  */
-template <int32_t key_len, typename T, typename hash_t = Hash::AwareHash>
-class CMSketchTest : public TestBase<key_len, T> {
-  using TestBase<key_len, T>::config_file;
+class AdditiveCSTest {
+private:
+  const std::string_view config_file;
 
 public:
-  /**
-   * @brief Constructor
-   * @details Names from left to right are
-   * - show name
-   * - config file
-   * - path to the node that contains metrics of interest (concatenated with
-   * '.')
-   */
-  CMSketchTest(const std::string_view config_file)
-      : TestBase<key_len, T>("Count Min", config_file, CM_TEST_PATH) {}
-
-  /**
-   * @brief Test Bloom Filter
-   * @details An overriden method
-   */
-  void runTest() override;
+  AdditiveCSTest(const std::string_view config_file_): config_file(config_file_){}
+  ~AdditiveCSTest(){};
+  void runTest();
 };
 
 } // namespace OmniSketch::Test
@@ -54,8 +42,9 @@ public:
 
 namespace OmniSketch::Test {
 
-template <int32_t key_len, typename T, typename hash_t>
-void CMSketchTest<key_len, T, hash_t>::runTest() {
+void AdditiveCSTest::runTest() {
+  typedef int32_t T;
+  constexpr int32_t key_len = 13;
   /**
    * @brief shorthand for convenience
    *
@@ -77,14 +66,14 @@ void CMSketchTest<key_len, T, hash_t>::runTest() {
   }
   /// Step iii. Set the working node of the parser.
   parser.setWorkingNode(
-      CM_PARA_PATH); // do not forget to to enclose it with braces
+      ACS_CM_PARA_PATH); // do not forget to to enclose it with braces
   /// Step iv. Parse num_bits and num_hash
   if (!parser.parseConfig(depth, "depth"))
     return;
   if (!parser.parseConfig(width, "width"))
     return;
   /// Step v. Move to the data node
-  parser.setWorkingNode(CM_DATA_PATH);
+  parser.setWorkingNode(ACS_CM_PARA_PATH);
   /// Step vi. Parse data and format
   if (!parser.parseConfig(data_file, "data"))
     return;
@@ -106,8 +95,10 @@ void CMSketchTest<key_len, T, hash_t>::runTest() {
   ///   Prepare sketch and data
   ///
   /// Step i. Initialize a sketch
+  width = Util::NextPrime(width);
+  ACScounter<T> counter(depth*width,100000,8);
   std::unique_ptr<Sketch::SketchBase<key_len, T>> ptr(
-      new Sketch::CMSketch<key_len, T, hash_t>(depth, width));
+      new Sketch::ACS_CMSketch<key_len, T, OmniSketch::Hash::AwareHash>(depth, width, 0, counter));
   /// remember that the left ptr must point to the base class in order to call
   /// the methods in it
 
@@ -125,25 +116,20 @@ void CMSketchTest<key_len, T, hash_t>::runTest() {
   /// Step iii. Insert the samples and then look up all the flows
   ///
   ///        1. update records into the sketch
-  this->testUpdate(ptr, data.begin(), data.end(),
-                   cnt_method); // metrics of interest are in config file
+  //this->testUpdate(ptr, data.begin(), data.end(),
+  //                 cnt_method); // metrics of interest are in config file
   ///        2. query for all the flowkeys
-  this->testQuery(ptr, gnd_truth); // metrics of interest are in config file
+  //this->testQuery(ptr, gnd_truth); // metrics of interest are in config file
   ///        3. size
-  this->testSize(ptr);
+  //this->testSize(ptr);
   ///        3. show metrics
-  this->show();
+  //this->show();
 
   return;
 }
 
 } // namespace OmniSketch::Test
 
-#undef CM_PARA_PATH
-#undef CM_TEST_PATH
-#undef CM_DATA_PATH
-
-// Driver instance:
-//      AUTHOR: dromniscience
-//      CONFIG: sketch_config.toml  # with respect to the `src/` directory
-//    TEMPLATE: <13, int32_t, Hash::AwareHash>
+#undef ACS_CONFIG_PATH
+#undef ACS_CM_TEST_PATH
+#undef ACS_CM_PARA_PATH
