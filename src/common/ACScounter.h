@@ -23,6 +23,7 @@ public:
 #else
 private:
 #endif
+  bool initialized; // if parameters has been initialized
   int32_t N; // number of virtual counter
   int32_t M; // number of physical counter
   int32_t K; // number of group
@@ -65,10 +66,22 @@ public:
   ACScounter(int32_t n, int32_t m, int32_t k);
 
   /**
+   * @brief Construct an empty ACScounter array, need to initialize later 
+   * 
+   */
+  ACScounter();
+  
+  /**
    * @brief release pointer
    * 
    */
   ~ACScounter();
+
+  /**
+   * @brief initialize empty counter array, do exactly as the Constructor method 
+   * 
+   */
+  void initParam(int32_t n, int32_t m, int32_t k);
 
   /**
    * @brief update counter
@@ -94,7 +107,23 @@ namespace OmniSketch::Counter {
 
 template <typename T>
 ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k)
-  :N(n), K(k), shared_cnt(NULL), restored_value(NULL) {
+  :update_cnt(0), shared_cnt(NULL), restored_value(NULL) {
+  initialized = false;
+  initParam(n,m,k);
+}
+
+template <typename T>
+ACScounter<T>::ACScounter()
+  :update_cnt(0), shared_cnt(NULL), restored_value(NULL) {
+  initialized = false;
+}
+
+template <typename T>
+void ACScounter<T>::initParam(int32_t n, int32_t m, int32_t k){
+  assert(!initialized);
+  initialized = true;
+  N = n;
+  K = k;
   gpnum = new int32_t[K];
   cumnum = new int32_t[K+1];
   // get gpnum which are pairwise coprime
@@ -179,7 +208,7 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
       lastids.push_back(j);
   int32_t i = 1, mod = gpnum[0];
   // step1&2
-  while(i<K && mod<N){
+  while(i<K){
     int32_t g_inv, mod_inv;
     int32_t g = gpnum[i];
     g_inv = Util::MulInverse(g, mod);
@@ -201,10 +230,11 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
             ids.push_back(new_id);
         }
       }
-    i+=1;
-    mod*=g;
     ids.swap(lastids);
     ids.clear();
+    i+=1;
+    if(mod>N/g) {break;}
+    else {mod*=g;}
   }
   // step3
   while(i<K){
@@ -278,7 +308,7 @@ void ACScounter<T>::restore_small(int32_t small_num){
     double tmpcnt = 0;
     for(int j = 0;j<K;++j){
       int32_t counter_id = cumnum[j]+id%gpnum[j];
-      tmpcnt += counter[counter_id]-shared_cnt[counter_id]*mu;
+      tmpcnt += counter[counter_id]-(shared_cnt[counter_id]-1)*mu;
     }
     restored_value[id] = T(tmpcnt);
   }

@@ -84,6 +84,18 @@ public:
     return 0;
   }
   /**
+   * @brief Return the counter number of this sketch
+   *
+   */
+  virtual size_t cntNum() const {
+    static bool emit = false; // avoid burst of LOG
+    if (!emit) {
+      LOG(ERROR, "Erroneously called SketchBase::size() const.");
+      emit = true;
+    }
+    return 0;
+  }
+  /**
    * @brief Insert a flowkey without value
    *
    */
