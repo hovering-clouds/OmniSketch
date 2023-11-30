@@ -78,6 +78,31 @@ if(BUILD_PCAP_PARSER)
   target_link_libraries(parser ${PCPP} ${PACPP} ${COMPP} ${PCAP} fmt OmniTools)
 endif()
 
+# ---- User-defined sketches ---- #
+
+function(add_user_sketch)
+  add_custom_target(${ARGV1}
+  DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/driver/${ARGV1}Driver.cpp
+  )
+  add_custom_command(
+    OUTPUT
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/driver/${ARGV1}Driver.cpp
+    COMMAND
+        ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/src/generate_driver.py sketch_test/${ARGV1}Test.h
+    DEPENDS
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/sketch_test/${ARGV1}Test.h
+    WORKING_DIRECTORY
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+  )
+  
+  add_executable(${ARGV0} ${CMAKE_CURRENT_SOURCE_DIR}/src/driver/${ARGV1}Driver.cpp)
+  target_link_libraries(${ARGV0} OmniTools)
+endfunction(add_user_sketch)
+
+# Count Min Sketch
+add_user_sketch(CM CMSketch)
+
 # Additive Counter Sharing
 add_executable(ACS ${CMAKE_CURRENT_SOURCE_DIR}/src/AdditiveCS/TestAdditiveCS.cpp)
 target_link_libraries(ACS OmniTools)
