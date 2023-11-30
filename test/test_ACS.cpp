@@ -13,7 +13,7 @@ using OmniSketch::Counter::ACScounter;
 
 void TestInit() {
   // test constructor
-  ACScounter<int32_t> ac = ACScounter<int32_t>(12,9,2);
+  ACScounter<int32_t> ac(12,9,2);
   VERIFY(ac.N==12);
   VERIFY(ac.M==9);
   VERIFY(ac.gpnum[0]==4);
@@ -23,7 +23,7 @@ void TestInit() {
   VERIFY(ac.cumnum[2]==9);
   VERIFY(ac.counter[5]==0);
   VERIFY(ac.shared_cnt==NULL);
-  ACScounter<int32_t> ac2 = ACScounter<int32_t>(256,120,6);
+  ACScounter<int32_t> ac2(256,120,6);
   VERIFY(ac2.M==161);
   VERIFY(ac2.gpnum[0]==20);
   VERIFY(ac2.gpnum[1]==21);
@@ -51,7 +51,7 @@ void TestInit() {
 }
 
 void TestGetLargeId() {
-  ACScounter<int32_t> ac = ACScounter<int32_t>(256,120,6);
+  ACScounter<int32_t> ac(256,120,6);
   // we update virtual counter 0,101,202 in each group by 10
   // so each of them should be considered as large counter
   ac.setCounter(ac.cumnum[0]+0,10);
@@ -94,7 +94,7 @@ void TestGetLargeId() {
 }
 
 void TestRestore() {
-  ACScounter<int32_t> ac = ACScounter<int32_t>(256,120,6);
+  ACScounter<int32_t> ac(256,120,6);
   // we update virtual counter 0,101,202 in each group by 10
   // so each of them should be considered as large counter
   ac.setCounter(ac.cumnum[0]+0,10);
