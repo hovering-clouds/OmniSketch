@@ -1,9 +1,9 @@
 /**
  * @file ACS_CMSketch.h
- * @author dromniscience (you@domain.com)
- * @brief Implementation of Count Min Sketch
+ * @author hc (you@domain.com)
+ * @brief Implementation of Count Min Sketch with ACS counters
  *
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2023
  *
  */
 #pragma once
