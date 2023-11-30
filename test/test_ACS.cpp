@@ -128,6 +128,30 @@ void TestRestore() {
   std::cout << "pass test_restore" << std::endl;
 }
 
+void TestUpdateOneGroup() {
+  ACScounter<int32_t> ac(256, 256, 1);
+  int32_t gnd[256];
+  std::fill_n(gnd, 256, 0);
+  VERIFY(ac.N==256);
+  VERIFY(ac.M==256);
+  VERIFY(ac.gpnum[0]==256);
+  VERIFY(ac.cumnum[0]==0);
+  VERIFY(ac.cumnum[1]==256);
+  int round = 10000;
+  for(int i = 0;i<round;++i){
+    int id = rand()%256;
+    int val = rand()%256;
+    gnd[id]+=val;
+    ac.update(id, val);
+  }
+  ac.restore();
+  for(int i = 0;i<256;++i){
+    if(gnd[i]!=ac.query(i)){
+      VERIFY(false);
+    }
+  }
+}
+
 /**
  * @brief other methods in utils
  *
@@ -136,6 +160,7 @@ OMNISKETCH_DECLARE_TEST(ACS) {
   TestInit();
   TestGetLargeId();
   TestRestore();
+  TestUpdateOneGroup();
 }
 /** @endcond */
 #undef TEST_ACS
