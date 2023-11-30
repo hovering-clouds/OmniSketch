@@ -11,7 +11,6 @@
 #include "common/hash.h"
 #include <common/sketch.h>
 #include <common/ACScounter.h>
-using OmniSketch::Counter::ACScounter;
 
 namespace OmniSketch::Sketch {
 /**
@@ -28,7 +27,7 @@ private:
   int32_t width;
   const int32_t offset;
   hash_t *hash_fns;
-  ACScounter<T>& counter;
+  Counter::ACScounter<T>& counter;
 
   ACS_CMSketch(const ACS_CMSketch &) = delete;
   ACS_CMSketch(ACS_CMSketch &&) = delete;
@@ -39,7 +38,7 @@ public:
    * @param width_ should be prime number to reduce hash collision
    *
    */
-  ACS_CMSketch(int32_t depth_, int32_t width_, int32_t _offset, ACScounter<T>& counter_);
+  ACS_CMSketch(int32_t depth_, int32_t width_, int32_t _offset, Counter::ACScounter<T>& counter_);
   /**
    * @brief Release the pointer
    *
@@ -60,6 +59,7 @@ public:
    *
    */
   size_t size() const override;
+  size_t cntNum() const override;
 };
 
 } // namespace OmniSketch::Sketch
@@ -73,7 +73,7 @@ public:
 namespace OmniSketch::Sketch {
 
 template <int32_t key_len, typename T, typename hash_t>
-ACS_CMSketch<key_len, T, hash_t>::ACS_CMSketch(int32_t depth_, int32_t width_, int32_t _offset, ACScounter<T> &counter_)
+ACS_CMSketch<key_len, T, hash_t>::ACS_CMSketch(int32_t depth_, int32_t width_, int32_t _offset, Counter::ACScounter<T> &counter_)
     : depth(depth_), width(width_), counter(counter_), offset(_offset){
   hash_fns = new hash_t[depth];
 }
@@ -98,7 +98,7 @@ T ACS_CMSketch<key_len, T, hash_t>::query(const FlowKey<key_len> &flowkey) const
   T min_val = std::numeric_limits<T>::max();
   for (int32_t i = 0; i < depth; ++i) {
     int32_t index = hash_fns[i](flowkey) % width + i*width + offset;
-    min_val = std::min(min_val, counter.query(index));
+    min_val = std::min(min_val, std::max(counter.query(index),0));
   }
   return min_val;
 }
@@ -108,6 +108,11 @@ size_t ACS_CMSketch<key_len, T, hash_t>::size() const {
   return sizeof(*this)                // instance
          + sizeof(hash_t) * depth     // hashing class
          + sizeof(T) * depth * width; // counter
+}
+
+template <int32_t key_len, typename T, typename hash_t>
+size_t ACS_CMSketch<key_len, T, hash_t>::cntNum() const {
+  return depth * width;
 }
 
 } // namespace OmniSketch::Sketch
