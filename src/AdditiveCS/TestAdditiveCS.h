@@ -9,7 +9,8 @@
 #pragma once
 
 #include <common/test.h>
-#include <sketch_test/TestACSCM.h>
+#include <sketch_test/ACSCMTest.h>
+#include <sketch_test/ACSFlowRadarTest.h>
 
 #define ACS_CONFIG_PATH "ACS.config"
 
@@ -87,11 +88,16 @@ void AdditiveCSTest::runTest() {
              gnd_truth.size(), data_file);
   
   /// Step iii. init sketch
-  auto cmptr = std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, parser, data, gnd_truth);
-  cmptr->initPtr(counter_num, counter);
-  counter_num += cmptr->getCntNum();
+  //auto cmptr = std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, parser, data, gnd_truth);
+  auto frptr = std::make_unique<ACSFlowRadarTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, parser, data, gnd_truth);
+  //cmptr->initPtr(counter_num, counter);
+  //counter_num += cmptr->getCntNum();
+  frptr->initPtr(counter_num, counter);
+  counter_num += frptr->getCntNum();
+
   counter.initParam(counter_num, counter_num/ratio, K);
-  cmptr->doUpdate(cnt_method);
+  //cmptr->doUpdate(cnt_method);
+  frptr->doUpdate(cnt_method);
   counter.restore();
   /// Step iv. test sketch
   ///
@@ -99,7 +105,8 @@ void AdditiveCSTest::runTest() {
   //this->testUpdate(ptr, data.begin(), data.end(),
   //                 cnt_method); // metrics of interest are in config file
   ///        2. query for all the flowkeys
-  cmptr->runTest();
+  //cmptr->runTest();
+  frptr->runTest();
   return;
 }
 

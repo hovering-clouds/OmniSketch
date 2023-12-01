@@ -48,12 +48,12 @@
 [ACS] # Additive Counter Sharing
   
   [ACS.config]
-    sketch = ["CM", ]
+    sketch = ["CM", "FR"]
     data = "../data/data-100K.bin"
     cnt_method = "InPacket"
     format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
-    ratio = 16
-    K = 16
+    ratio = 2
+    K = 4
 
   [ACS.CM]
     [ACS.CM.para]
@@ -62,6 +62,17 @@
     [ACS.CM.test]
     update = ["RATE"]
     query = ["RATE", "ARE", "AAE"]
+
+  [ACS.FlowRadar]
+    [ACS.FlowRadar.para]
+      flow_filter_bit = 1000000
+      flow_filter_hash = 50
+      count_table_num = 500000
+      count_table_hash = 5
+    [ACS.FlowRadar.test]
+      update = ["RATE"]
+      decode = ["TIME", "ARE", "AAE", "RATIO", "ACC", "PODF"]
+      decode_podf = 0.01
 
 [HP] # Hash Pipe
 
@@ -89,7 +100,7 @@
     count_table_hash = 5
   
   [FlowRadar.data]
-    data = "../data/records.bin"
+    data = "../data/data-100K.bin"
     format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
   
   [FlowRadar.test]

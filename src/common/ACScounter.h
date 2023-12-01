@@ -23,7 +23,8 @@ public:
 #else
 private:
 #endif
-  bool initialized; // if parameters has been initialized
+  bool is_initialized; // if parameters has been initialized
+  bool is_restored; // if restored_counter has been allocated
   int32_t N; // number of virtual counter
   int32_t M; // number of physical counter
   int32_t K; // number of group
@@ -95,6 +96,8 @@ public:
 
   T query(int32_t idx);
 
+  T& operator[](size_t idx);
+
   /**
    * @brief clear the counters (won't clear restored value)
    * 
@@ -108,20 +111,22 @@ namespace OmniSketch::Counter {
 template <typename T>
 ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k)
   :update_cnt(0), shared_cnt(NULL), restored_value(NULL) {
-  initialized = false;
+  is_initialized = false;
+  is_restored = false;
   initParam(n,m,k);
 }
 
 template <typename T>
 ACScounter<T>::ACScounter()
   :update_cnt(0), shared_cnt(NULL), restored_value(NULL) {
-  initialized = false;
+  is_initialized = false;
+  is_restored = false;
 }
 
 template <typename T>
 void ACScounter<T>::initParam(int32_t n, int32_t m, int32_t k){
-  assert(!initialized);
-  initialized = true;
+  assert(!is_initialized);
+  is_initialized = true;
   N = n;
   K = k;
   gpnum = new int32_t[K];
@@ -174,6 +179,7 @@ void ACScounter<T>::setCounter(int32_t inner_idx, T val){
 
 template <typename T>
 void ACScounter<T>::initRestore(){
+  is_restored = true;
   shared_cnt = new int32_t[M];
   restored_value = new T[N];
   std::fill_n(shared_cnt,M,0);
@@ -322,6 +328,7 @@ template <typename T>
 void ACScounter<T>::update(int32_t idx,T val){
   #ifdef DEBUG_ACS
   assert(idx<N);
+  assert(is_initialized);
   #endif
   update_cnt++;
   int gp = update_cnt%K;
@@ -330,6 +337,9 @@ void ACScounter<T>::update(int32_t idx,T val){
 
 template <typename T>
 void ACScounter<T>::restore(){
+  #ifdef DEBUG_ACS
+  assert(is_initialized);
+  #endif
   // step1. initialize data structures
   initRestore();
 
@@ -372,15 +382,26 @@ template <typename T>
 T ACScounter<T>::query(int32_t idx){
   #ifdef DEBUG_ACS
   assert(idx<N);
+  assert(is_initialized);
+  #endif
+  return restored_value[idx];
+}
+
+template <typename T>
+T& ACScounter<T>::operator[](size_t idx){
+  #ifdef DEBUG_ACS
+  assert(is_initialized);
   #endif
   return restored_value[idx];
 }
 
 template <typename T>
 void ACScounter<T>::clear(){
+  if(!is_initialized){return;}
   std::fill(counter,counter+M,0);
-  //std::fill(shared_cnt, shared_cnt+M, 0);
-  //std::fill(restored_value, restored_value+N, 0);
+  if(!is_restored){return;}
+  std::fill(shared_cnt, shared_cnt+M, 0);
+  std::fill(restored_value, restored_value+N, 0);
 }
 
 }// end of namespace Counter

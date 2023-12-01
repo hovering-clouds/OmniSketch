@@ -100,8 +100,9 @@ function(add_user_sketch)
   target_link_libraries(${ARGV0} OmniTools)
 endfunction(add_user_sketch)
 
-# Count Min Sketch
+# Normal Sketch
 add_user_sketch(CM CMSketch)
+add_user_sketch(FR FlowRadar)
 
 # Additive Counter Sharing
 add_executable(ACS ${CMAKE_CURRENT_SOURCE_DIR}/src/AdditiveCS/TestAdditiveCS.cpp)
