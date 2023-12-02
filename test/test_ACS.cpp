@@ -10,6 +10,7 @@
 #include "test_factory.h"
 #include <common/ACScounter.h>
 using OmniSketch::Counter::ACScounter;
+using OmniSketch::Counter::ShadowCounter;
 
 void TestInit() {
   // test constructor
@@ -150,6 +151,115 @@ void TestUpdateOneGroup() {
       VERIFY(false);
     }
   }
+  std::cout << "pass test_one_group" << std::endl;
+}
+
+void TestShadow() {
+  ShadowCounter cnt, cnt2;
+  ShadowCounter::set_len(3);
+  VERIFY(cnt.query()==0);
+  cnt.update(1);
+  VERIFY(cnt.query()==1);
+  cnt.update(7);
+  VERIFY(cnt.overflow());
+  cnt.update(1);
+  VERIFY(cnt.overflow());
+  ShadowCounter::set_len(4);
+  cnt2.update(15);
+  VERIFY(!cnt2.overflow());
+  VERIFY(cnt.overflow());
+  cnt2.update(-14);
+  VERIFY(cnt2.query()==1);
+  cnt2.update(-3);
+  VERIFY(cnt2.overflow());
+  std::cout << "pass test_shadow" << std::endl;
+}
+
+void TestACSShadowNoOverflow() {
+  ACScounter<int32_t> ac(256,120,6,4);
+  VERIFY(ac.use_shadow);
+  for(int i = 0;i<128;++i){
+    ac.update(i, 10);
+  }
+  for(int i = 128;i<256;++i){
+    ac.update(i, 12);
+  }
+  ac.restore();
+  VERIFY(ac.unrestored==0);
+  for(int i = 0;i<256;++i){
+    VERIFY(ac.is_restored[i]);
+  }
+  for(int i = 0;i<128;++i){
+    VERIFY(ac.query(i)==10);
+  }
+  for(int i = 128;i<256;++i){
+    VERIFY(ac.query(i)==12);
+  }
+  std::cout << "pass no_overflow" << std::endl;
+}
+
+void TestACSShadowOneOverflow() {
+  ACScounter<int32_t> ac(256,120,6,4);
+  VERIFY(ac.use_shadow);
+  for(int i = 0;i<256;++i){
+    ac.update(i, 12);
+  }
+  // make counter 0 overflow
+  for(int i = 0;i<10000;++i){
+    ac.update(0, 1);
+  }
+  VERIFY(ac.counter[0]>1000);
+  ac.initRestore();
+  ac.preShadow();
+  std::vector<int32_t> id_list;
+  ac.getLargeId(id_list, 0.1);
+  VERIFY(id_list.size()==1);
+  VERIFY(id_list[0]==0); 
+  ac.restore_large(id_list);
+  VERIFY(ac.unrestored==0);
+  ac.restore_small(); // do nothing
+  VERIFY(ac.query(0)==9996);
+  ac.postShadow();
+  for(int i = 1;i<256;++i){
+    VERIFY(ac.query(i)==12);
+  }
+  VERIFY(ac.query(0)==10012);
+  std::cout << "pass test_one_overflow" << std::endl;
+}
+
+void TestACSShadowManyOverflow() {
+  ACScounter<int32_t> ac(256,120,6,4);
+  VERIFY(ac.use_shadow);
+  for(int i = 0;i<256;++i){
+    ac.update(i, 12);
+  }
+  // make counter 0 overflow
+  for(int i = 0;i<10000;++i){
+    ac.update(0, 1);
+    ac.update(1, 1);
+    ac.update(20, 1);
+    ac.update(255, 2);
+    ac.update(254, 2);
+  }
+  for(int i = 2;i<20;++i){ // add small overflow
+    for(int r = 0;r<16;++r){
+      ac.update(i,1);
+    }
+  }
+  ac.restore();
+  for(int i = 2;i<20;++i){
+    VERIFY(ac.query(i)>16);
+    //std::cout << "id: " << i << ", val: " << ac.query(i) << std::endl;
+  }
+  for(int i = 21;i<254;++i){
+    VERIFY(ac.query(i)==12);
+  }
+  VERIFY(ac.query(0)>9800);
+  VERIFY(ac.query(1)>9800);
+  VERIFY(ac.query(20)>9900);
+  VERIFY(ac.query(255)>19000);
+  VERIFY(ac.query(254)>19000);  
+  std::cout << "pass test_many_overflow" << std::endl;
 }
 
 /**
@@ -161,6 +271,10 @@ OMNISKETCH_DECLARE_TEST(ACS) {
   TestGetLargeId();
   TestRestore();
   TestUpdateOneGroup();
+  TestShadow();
+  TestACSShadowNoOverflow();
+  TestACSShadowOneOverflow();
+  TestACSShadowManyOverflow();
 }
 /** @endcond */
 #undef TEST_ACS
