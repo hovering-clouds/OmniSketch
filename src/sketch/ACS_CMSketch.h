@@ -98,7 +98,7 @@ T ACS_CMSketch<key_len, T, hash_t>::query(const FlowKey<key_len> &flowkey) const
   T min_val = std::numeric_limits<T>::max();
   for (int32_t i = 0; i < depth; ++i) {
     int32_t index = hash_fns[i](flowkey) % width + i*width + offset;
-    min_val = std::min(min_val, std::max(counter.query(index),0));
+    min_val = std::min(min_val, counter.query(index));
   }
   return min_val;
 }

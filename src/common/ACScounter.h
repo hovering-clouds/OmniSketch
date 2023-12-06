@@ -143,6 +143,12 @@ public:
    * 
    */
   void clear();
+  /**
+   * @brief dump restored counters
+   * 
+   */
+  void dump_results();
+  void query_map_values(int32_t idx);
 };
 
 } //namespace Ominisketch
@@ -380,6 +386,7 @@ void ACScounter<T>::restore_large(const std::vector<int32_t>& id_list, int32_t c
       --end;
     }
     restored_value[id] = T(std::accumulate(begin,end,0.0)*K/(K-2*clip));
+    //printf("large %d, val %d\n", id, restored_value[id]);
   }
   // step3. subtract restored large values from `counter` array
   for(int32_t id: id_list){
@@ -526,6 +533,25 @@ void ACScounter<T>::clear(){
   std::fill(restored_value, restored_value+N, 0);
   std::fill(is_restored, is_restored+N, false);
 }
+
+template <typename T>
+void ACScounter<T>::dump_results(){
+  for(int i = 0;i<N;++i){
+    printf("%d ", restored_value[i]);
+    if(i%100==99)
+      printf("\n");
+  }
+}
+
+template <typename T>
+void ACScounter<T>::query_map_values(int32_t idx){
+  printf("idx: %d, ", idx);
+  for(int i = 0;i<K;++i){
+    printf("%d ", counter[cumnum[i]+idx%gpnum[i]]);
+  }
+  printf("\n");
+}
+
 
 }// end of namespace Counter
 
