@@ -65,6 +65,7 @@ private:
   int32_t K; // number of group
   uint32_t update_cnt; // used as a 'pseudo random number' to select which counter to update
   uint32_t unrestored; // number of unrestored counter, i.e. sum of shared_cnt
+  T total_cnt; // totoal updated value
   int32_t* gpnum; // counter number in each group
   int32_t* cumnum; // cumulative sum of `gpnum`, start from 0
   T* counter; // real counter array of type T
@@ -132,9 +133,16 @@ public:
    */
   void update(int32_t idx, T val);
 
+  /**
+   * @brief update counter, but distribute the value uniformly in all k counters
+   */
+  void uniform_update(int32_t idx, T val);
+
   void restore();
 
   T query(int32_t idx);
+
+  T est(int32_t idx);
 
   T& operator[](size_t idx);
 
@@ -158,7 +166,9 @@ size_t ShadowCounter::len;
 
 template <typename T>
 ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len)
-  :update_cnt(0), shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL) {
+  :shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL) {
+  update_cnt = 0;
+  total_cnt = 0;
   use_shadow = false;
   is_initialized = false;
   restore_inited = false;
@@ -167,7 +177,9 @@ ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len)
 
 template <typename T>
 ACScounter<T>::ACScounter()
-  :update_cnt(0), shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL) {
+  :shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL) {
+  update_cnt = 0;
+  total_cnt = 0;
   use_shadow = false;
   is_initialized = false;
   restore_inited = false;
@@ -456,6 +468,7 @@ void ACScounter<T>::update(int32_t idx,T val){
   assert(is_initialized);
   #endif
   update_cnt++;
+  total_cnt+=val;
   if(use_shadow&&!shadow[idx].overflow()){ // update shadow counter
     shadow[idx].update(val);
   } else { // update shared counter
@@ -465,9 +478,38 @@ void ACScounter<T>::update(int32_t idx,T val){
 }
 
 template <typename T>
+void ACScounter<T>::uniform_update(int32_t idx,T val){
+  #ifdef DEBUG_ACS
+  assert(idx<N);
+  assert(is_initialized);
+  #endif
+  update_cnt++;
+  total_cnt+=val;
+  if(use_shadow&&!shadow[idx].overflow()){ // update shadow counter
+    shadow[idx].update(val);
+  } else { // update shared counter
+    if(val>=0){
+      for(int i = 0;i<K;++i){
+        int gp = (update_cnt+i)%K;
+        if(i<val%K){ counter[cumnum[gp]+idx%gpnum[gp]] += val/K+1;}
+        else{ counter[cumnum[gp]+idx%gpnum[gp]] += val/K;}
+      }
+    } else {
+      for(int i = 0;i<K;++i){
+        int gp = (update_cnt+i)%K;
+        if(i<(val%K)+K){ counter[cumnum[gp]+idx%gpnum[gp]] += val/K;}
+        else{ counter[cumnum[gp]+idx%gpnum[gp]] += val/K-1;}
+      }
+    }
+  }
+}
+
+template <typename T>
 void ACScounter<T>::restore(){
   #ifdef DEBUG_ACS
   assert(is_initialized);
+  T sum = std::accumulate(counter, counter+M, 0);
+  assert(sum==total_cnt);
   #endif
   // step1. initialize data structures
   initRestore();
@@ -515,6 +557,19 @@ T ACScounter<T>::query(int32_t idx){
   assert(is_initialized);
   #endif
   return restored_value[idx];
+}
+
+template <typename T>
+T ACScounter<T>::est(int32_t idx){
+  double tmpcnt = 0, mu = double(total_cnt)/N/K;
+  T min_cnt;
+  for(int j = 0;j<K;++j){
+    int32_t counter_id = cumnum[j]+idx%gpnum[j];
+    tmpcnt += counter[counter_id]-(N/gpnum[j]-1)*mu;
+    if(j==0){min_cnt = counter[counter_id];}
+    min_cnt = std::min(min_cnt, counter[counter_id]);
+  }
+  return std::min(K*min_cnt, std::max((T)tmpcnt, 0));
 }
 
 template <typename T>
