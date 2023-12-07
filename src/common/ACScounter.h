@@ -412,14 +412,17 @@ void ACScounter<T>::restore_small(){
     if(is_restored[id])
       continue; // has been restored
     double tmpcnt = 0;
+    T min_cnt;
     for(int j = 0;j<K;++j){
       int32_t counter_id = cumnum[j]+id%gpnum[j];
       #ifdef DEBUG_ACS
       assert(shared_cnt[counter_id]>=1);
       #endif
       tmpcnt += counter[counter_id]-(shared_cnt[counter_id]-1)*mu;
+      if(j==0){min_cnt = counter[counter_id];}
+      min_cnt = std::min(min_cnt, counter[counter_id]);
     }
-    restored_value[id] = std::max(T(tmpcnt),0);
+    restored_value[id] = std::min(K*min_cnt ,std::max(T(tmpcnt),0));
     unrestored-=1;
     is_restored[id] = true;
   }
