@@ -16,11 +16,11 @@ namespace OmniSketch::Test {
 template <int32_t key_len, typename T>
 class ACSTestBase : public TestBase<key_len, T> {
 
+public:
+  
   Data::StreamData<key_len>& data;
   Data::CntMethod cnt_method;
   std::unique_ptr<Sketch::SketchBase<key_len, T>> ptr;
-
-public:
 
   ACSTestBase(const std::string_view show_name, const std::string_view config_file,
               const std::string_view test_path, Data::StreamData<key_len>& data_,

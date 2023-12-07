@@ -21,12 +21,8 @@ namespace OmniSketch::Test {
  *
  */
 template <int32_t key_len, typename T, typename hash_t = Hash::AwareHash>
-class ACSHashPipeTest : public TestBase<key_len, T> {
+class ACSHashPipeTest : public ACSTestBase<key_len, T> {
   using TestBase<key_len, T>::config_file;
-
-  Data::StreamData<key_len>& data;
-  Data::CntMethod cnt_method;
-  std::unique_ptr<Sketch::SketchBase<key_len, T>> ptr;
 
   Data::HXMethod hx_method;
   double num_heavy_hitter;
@@ -34,12 +30,9 @@ class ACSHashPipeTest : public TestBase<key_len, T> {
 public:
 
   ACSHashPipeTest(const std::string_view config_file, Data::StreamData<key_len>& data_, Data::CntMethod method)
-      : TestBase<key_len, T>("ACS Hash Pipe", config_file, ACS_HP_TEST_PATH), data(data_), cnt_method(method) {}
+      : ACSTestBase<key_len, T>("ACS Hash Pipe", config_file, ACS_HP_TEST_PATH, data_, method) {}
 
-
-  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser);
-  void doUpdate();
-  int32_t getCntNum();
+  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser) override;
 
   /**
    * @brief Test Bloom Filter
@@ -57,16 +50,6 @@ public:
 //-----------------------------------------------------------------------------
 
 namespace OmniSketch::Test {
-
-template <int32_t key_len, typename T, typename hash_t>
-int32_t ACSHashPipeTest<key_len, T, hash_t>::getCntNum(){
-  return ptr->cntNum();
-}
-
-template <int32_t key_len, typename T, typename hash_t>
-void ACSHashPipeTest<key_len, T, hash_t>::doUpdate(){
-  this->testUpdate(ptr, data.begin(), data.end(), cnt_method);
-}
 
 template <int32_t key_len, typename T, typename hash_t>
 void ACSHashPipeTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser){
@@ -96,23 +79,23 @@ void ACSHashPipeTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::
   /// Step iii. Prepare Sketch
   /// remember that the left ptr must point to the base class in order to call
   /// the methods in it
-  ptr = std::make_unique<Sketch::ACS_HashPipe<key_len, T, hash_t>>(depth, width, counter_num, counter);
+  this->ptr = std::make_unique<Sketch::ACS_HashPipe<key_len, T, hash_t>>(depth, width, counter_num, counter);
 }
 
 template <int32_t key_len, typename T, typename hash_t>
 void ACSHashPipeTest<key_len, T, hash_t>::runTest() {
 
   Data::GndTruth<key_len, T> gnd_truth, gnd_truth_heavy_hitters;
-  gnd_truth.getGroundTruth(data.begin(), data.end(), cnt_method);
+  gnd_truth.getGroundTruth(this->data.begin(), this->data.end(), this->cnt_method);
   gnd_truth_heavy_hitters.getHeavyHitter(gnd_truth, num_heavy_hitter, hx_method);
 
-  this->testSize(ptr);
+  this->testSize(this->ptr);
   if (hx_method == Data::TopK) {
-    this->testHeavyHitter(ptr, gnd_truth_heavy_hitters.min(), 
+    this->testHeavyHitter(this->ptr, gnd_truth_heavy_hitters.min(), 
                           gnd_truth_heavy_hitters); // metrics of interest are in config file
   } else {
     this->testHeavyHitter(
-        ptr, std::floor(gnd_truth.totalValue() * num_heavy_hitter + 1),
+        this->ptr, std::floor(gnd_truth.totalValue() * num_heavy_hitter + 1),
         gnd_truth_heavy_hitters); // gnd_truth_heavy_hitter: >, yet HashPipe: >=
   }
   this->show();
