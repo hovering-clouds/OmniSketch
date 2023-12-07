@@ -48,21 +48,20 @@
 [ACS] # Additive Counter Sharing
   
   [ACS.config]
-    sketch = ["CM", "FR"]
+    sketch = ["CM", "FR", "HP"]
     data = "../data/t.bin"
     cnt_method = "InPacket"
     format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
-    ratio = 2
-    K = 12
+    ratio = 4
+    K = 4
 
   [ACS.CM]
     [ACS.CM.para]
       depth = 2
-      # width = 80001
       width = 1000
     [ACS.CM.test]
-    update = ["RATE"]
-    query = ["RATE", "ARE", "AAE"]
+      update = ["RATE"]
+      query = ["RATE", "ARE", "AAE"]
 
   [ACS.FlowRadar]
     [ACS.FlowRadar.para]
@@ -79,17 +78,28 @@
       decode = ["TIME", "ARE", "AAE", "RATIO", "ACC", "PODF"]
       decode_podf = 0.01
 
+  [ACS.HP]
+    [ACS.HP.para]
+      depth = 3
+      width = 30
+    [ACS.HP.data]
+      hx_method = "TopK"
+      threshold_heavy_hitter = 30
+    [ACS.HP.test]
+      update = ["RATE"]
+      heavyhitter = ["TIME", "ARE", "PRC", "RCL"]
+
 [HP] # Hash Pipe
 
   [HP.para]
-  depth = 5
-  width = 1001
+  depth = 3
+  width = 300
 
   [HP.data]
   hx_method = "TopK"
   threshold_heavy_hitter = 300
   cnt_method = "InPacket"
-  data = "../data/records.bin"
+  data = "../data/t.bin"
   format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
 
   [HP.test]

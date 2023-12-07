@@ -11,6 +11,7 @@
 #include <common/test.h>
 #include <sketch_test/ACSCMTest.h>
 #include <sketch_test/ACSFlowRadarTest.h>
+#include <sketch_test/ACSHashPipeTest.h>
 
 #define ACS_CONFIG_PATH "ACS.config"
 
@@ -81,23 +82,24 @@ void AdditiveCSTest::runTest() {
   Data::StreamData<KEYLEN> data(data_file, format); // specify both data file and data format
   if (!data.succeed())
     return;
-  Data::GndTruth<KEYLEN, COUNTER_TYPR> gnd_truth;
-  gnd_truth.getGroundTruth(data.begin(), data.end(), cnt_method);
   // [optional] show data info
-  fmt::print("DataSet: {:d} records with {:d} keys ({})\n", data.size(),
-             gnd_truth.size(), data_file);
+  fmt::print("DataSet: {:d} records with xxx keys ({})\n", data.size(), data_file);
   
   /// Step iii. init sketch
-  //auto cmptr = std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, parser, data, gnd_truth);
-  auto frptr = std::make_unique<ACSFlowRadarTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, parser, data, gnd_truth);
-  //cmptr->initPtr(counter_num, counter);
-  //counter_num += cmptr->getCntNum();
-  frptr->initPtr(counter_num, counter);
+  auto cmptr = std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
+  auto frptr = std::make_unique<ACSFlowRadarTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
+  auto hpptr = std::make_unique<ACSHashPipeTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
+  cmptr->initPtr(counter_num, counter, parser);
+  counter_num += cmptr->getCntNum();
+  frptr->initPtr(counter_num, counter, parser);
   counter_num += frptr->getCntNum();
+  hpptr->initPtr(counter_num, counter, parser);
+  counter_num += hpptr->getCntNum();
 
   counter.initParam(counter_num, counter_num/ratio, K);
-  //cmptr->doUpdate(cnt_method);
-  frptr->doUpdate(cnt_method);
+  cmptr->doUpdate();
+  frptr->doUpdate();
+  hpptr->doUpdate();
   counter.restore();
   /// Step iv. test sketch
   ///
@@ -105,8 +107,9 @@ void AdditiveCSTest::runTest() {
   //this->testUpdate(ptr, data.begin(), data.end(),
   //                 cnt_method); // metrics of interest are in config file
   ///        2. query for all the flowkeys
-  //cmptr->runTest();
+  cmptr->runTest();
   frptr->runTest();
+  hpptr->runTest();
   return;
 }
 

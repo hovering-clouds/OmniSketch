@@ -25,21 +25,20 @@ class ACSFlowRadarTest : public TestBase<key_len, T> {
   using TestBase<key_len, T>::config_file;
 
   Data::StreamData<key_len>& data;
-  Data::GndTruth<key_len, T>& gnd_truth;
-  Util::ConfigParser& parser;
+  Data::CntMethod cnt_method;
   std::unique_ptr<Sketch::SketchBase<key_len, T>> ptr;
 
 public:
 
-  ACSFlowRadarTest(const std::string_view config_file, Util::ConfigParser& _parser, Data::StreamData<key_len>& _data, Data::GndTruth<key_len, T>& _gnd_truth)
-      : TestBase<key_len, T>("ACS Flow Radar", config_file, ACS_FR_TEST_PATH),  parser(_parser), data(_data), gnd_truth(_gnd_truth) {}
+  ACSFlowRadarTest(const std::string_view config_file, Data::StreamData<key_len>& _data, Data::CntMethod method)
+      : TestBase<key_len, T>("ACS Flow Radar", config_file, ACS_FR_TEST_PATH),  data(_data), cnt_method(method) {}
 
-  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter);
-  void doUpdate(Data::CntMethod cnt_method);
+  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser);
+  void doUpdate();
   int32_t getCntNum();
 
   /**
-   * @brief Test Flow Radar
+   * @brief Test Flow Radar with ACS
    * @details An overriden method
    */
   void runTest() override;
@@ -61,18 +60,16 @@ int32_t ACSFlowRadarTest<key_len, T, hash_t>::getCntNum(){
 }
 
 template <int32_t key_len, typename T, typename hash_t>
-void ACSFlowRadarTest<key_len, T, hash_t>::doUpdate(Data::CntMethod cnt_method){
+void ACSFlowRadarTest<key_len, T, hash_t>::doUpdate(){
   this->testUpdate(ptr, data.begin(), data.end(), cnt_method);
 }
 
 template <int32_t key_len, typename T, typename hash_t>
-void ACSFlowRadarTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScounter<T>& counter){
+void ACSFlowRadarTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser){
 
   /// step i. List Sketch Config
   int32_t flow_filter_bit, flow_filter_hash, count_table_num,
       count_table_hash;  // sketch config
-  std::string data_file; // data config
-  toml::array arr;       // shortly we will convert it to format
   parser.setWorkingNode(ACS_FR_PARA_PATH);
 
   /// Step ii. Parse
@@ -88,12 +85,15 @@ void ACSFlowRadarTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter:
   /// Step iii. Prepare Sketch
   /// remember that the left ptr must point to the base class in order to call
   /// the methods in it
-  ptr = std::make_unique<Sketch::ACS_FlowRadar<key_len, T, OmniSketch::Hash::AwareHash>>(
+  ptr = std::make_unique<Sketch::ACS_FlowRadar<key_len, T, hash_t>>(
         flow_filter_bit, flow_filter_hash, count_table_num, count_table_hash, counter_num, counter);
 }
 
 template <int32_t key_len, typename T, typename hash_t>
 void ACSFlowRadarTest<key_len, T, hash_t>::runTest() {
+
+  Data::GndTruth<key_len, T> gnd_truth;
+  gnd_truth.getGroundTruth(data.begin(), data.end(), cnt_method);
 
   this->testSize(ptr);
   this->testDecode(ptr, gnd_truth);

@@ -1,5 +1,5 @@
 /**
- * @file TestACSCM.h
+ * @file ACSCMTest.h
  * @author hc (you@domain.com)
  * @brief Test Count Min Sketch with counter sharing
  *
@@ -20,17 +20,16 @@ template <int32_t key_len, typename T, typename hash_t = Hash::AwareHash>
 class ACSCMTest : public TestBase<key_len, T> {
 
   Data::StreamData<key_len>& data;
-  Data::GndTruth<key_len, T>& gnd_truth;
-  Util::ConfigParser& parser;
+  Data::CntMethod cnt_method;
   std::unique_ptr<Sketch::SketchBase<key_len, T>> ptr;
 
 public:
 
-  ACSCMTest(const std::string_view config_file, Util::ConfigParser& _parser, Data::StreamData<key_len>& _data, Data::GndTruth<key_len, T>& _gnd_truth)
-      : TestBase<key_len, T>("Count Min with ACS", config_file, ACS_CM_TEST_PATH), parser(_parser), data(_data), gnd_truth(_gnd_truth) {}
+  ACSCMTest(const std::string_view config_file, Data::StreamData<key_len>& data_, Data::CntMethod method)
+      : TestBase<key_len, T>("Count Min with ACS", config_file, ACS_CM_TEST_PATH), data(data_), cnt_method(method) {}
 
-  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter);
-  void doUpdate(Data::CntMethod cnt_method);
+  void initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser);
+  void doUpdate();
   int32_t getCntNum();
 
   /**
@@ -56,12 +55,12 @@ int32_t ACSCMTest<key_len, T, hash_t>::getCntNum(){
 }
 
 template <int32_t key_len, typename T, typename hash_t>
-void ACSCMTest<key_len, T, hash_t>::doUpdate(Data::CntMethod cnt_method){
+void ACSCMTest<key_len, T, hash_t>::doUpdate(){
   this->testUpdate(ptr, data.begin(), data.end(), cnt_method);
 }
 
 template <int32_t key_len, typename T, typename hash_t>
-void ACSCMTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScounter<T>& counter){
+void ACSCMTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScounter<T>& counter, Util::ConfigParser& parser){
 
   /// step i. List Sketch Config
   int32_t depth, width;
@@ -76,13 +75,16 @@ void ACSCMTest<key_len, T, hash_t>::initPtr(int32_t counter_num, Counter::ACScou
   /// Step iii. Prepare Sketch
   /// remember that the left ptr must point to the base class in order to call
   /// the methods in it
-  ptr = std::make_unique<Sketch::ACS_CMSketch<key_len, T, OmniSketch::Hash::AwareHash>>(depth, width, counter_num, counter);
+  ptr = std::make_unique<Sketch::ACS_CMSketch<key_len, T, hash_t>>(depth, width, counter_num, counter);
 }
 
 template <int32_t key_len, typename T, typename hash_t>
 void ACSCMTest<key_len, T, hash_t>::runTest() {
 
-  /// Step iii. Insert the samples and then look up all the flows
+  Data::GndTruth<key_len, T> gnd_truth;
+  gnd_truth.getGroundTruth(data.begin(), data.end(), cnt_method);
+
+  /// Insert the samples and then look up all the flows
   ///
   ///        1. query for all the flowkeys
   this->testQuery(ptr, gnd_truth); // metrics of interest are in config file
