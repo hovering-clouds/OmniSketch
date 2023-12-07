@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <common/test.h>
+#include "ACSTest.h"
 #include <sketch/ACS_FlowRadar.h>
 
 #define ACS_FR_PARA_PATH "ACS.FlowRadar.para"

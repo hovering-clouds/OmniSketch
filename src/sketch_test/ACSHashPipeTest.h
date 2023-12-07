@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <common/test.h>
+#include "ACSTest.h"
 #include <sketch/ACS_HashPipe.h>
 
 #define ACS_HP_PARA_PATH "ACS.HP.para"

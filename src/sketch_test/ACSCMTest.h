@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <common/test.h>
+#include "ACSTest.h"
 #include <sketch/ACS_CMSketch.h>
 
 #define ACS_CM_TEST_PATH "ACS.CM.test"
