@@ -8,7 +8,7 @@
  */
 #pragma once
 
-#include <common/test.h>
+#include <sketch_test/ACSTest.h>
 #include <sketch_test/ACSCMTest.h>
 #include <sketch_test/ACSFlowRadarTest.h>
 #include <sketch_test/ACSHashPipeTest.h>
@@ -26,16 +26,20 @@ namespace OmniSketch::Test {
  */
 class AdditiveCSTest {
 private:
-
+  using Ptr = std::unique_ptr<ACSTestBase<KEYLEN, COUNTER_TYPR>>;
   const std::string_view config_file;
   Counter::ACScounter<COUNTER_TYPR> counter;
   int32_t counter_num;
+  std::vector<Ptr> testPtr;
 
 public:
   AdditiveCSTest(const std::string_view config_file_): config_file(config_file_){
     counter_num = 0;
   }
   
+  void initPtr(toml::array& sketch_list, Data::StreamData<KEYLEN>& data, 
+               Data::CntMethod cnt_method);
+
   void runTest();
 };
 
@@ -48,6 +52,20 @@ public:
 //-----------------------------------------------------------------------------
 
 namespace OmniSketch::Test {
+
+void AdditiveCSTest::initPtr(toml::array& sketch_list, 
+                             Data::StreamData<KEYLEN>& data, Data::CntMethod cnt_method){
+  for(auto& node: sketch_list){
+    std::string str = node.as_string()->value_or<std::string>("");
+    if(str.compare("CM")==0){ // CM sketch
+      testPtr.push_back(std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
+    } else if(str.compare("FR")==0){ // FlowRadar
+      testPtr.push_back(std::make_unique<ACSFlowRadarTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
+    } else if(str.compare("HP")==0){ //HashPipe
+      testPtr.push_back(std::make_unique<ACSHashPipeTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
+    }
+  }
+}
 
 void AdditiveCSTest::runTest() {
   /// step i: parse ACS param
@@ -86,20 +104,15 @@ void AdditiveCSTest::runTest() {
   fmt::print("DataSet: {:d} records with xxx keys ({})\n", data.size(), data_file);
   
   /// Step iii. init sketch
-  auto cmptr = std::make_unique<ACSCMTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
-  auto frptr = std::make_unique<ACSFlowRadarTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
-  auto hpptr = std::make_unique<ACSHashPipeTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method);
-  cmptr->initPtr(counter_num, counter, parser);
-  counter_num += cmptr->getCntNum();
-  frptr->initPtr(counter_num, counter, parser);
-  counter_num += frptr->getCntNum();
-  hpptr->initPtr(counter_num, counter, parser);
-  counter_num += hpptr->getCntNum();
-
+  initPtr(sketch_list, data, cnt_method);
+  for(auto&& ptr: testPtr){
+    ptr->initPtr(counter_num, counter, parser);
+    counter_num += ptr->getCntNum();
+  }
   counter.initParam(counter_num, counter_num/ratio, K);
-  cmptr->doUpdate();
-  frptr->doUpdate();
-  hpptr->doUpdate();
+  for(auto&& ptr: testPtr){
+    ptr->doUpdate();
+  }
   counter.restore();
   /// Step iv. test sketch
   ///
@@ -107,9 +120,9 @@ void AdditiveCSTest::runTest() {
   //this->testUpdate(ptr, data.begin(), data.end(),
   //                 cnt_method); // metrics of interest are in config file
   ///        2. query for all the flowkeys
-  cmptr->runTest();
-  frptr->runTest();
-  hpptr->runTest();
+  for(auto&& ptr: testPtr){
+    ptr->runTest();
+  }
   return;
 }
 
