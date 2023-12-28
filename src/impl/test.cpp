@@ -63,6 +63,8 @@ MetricVec::MetricVec(const std::string_view file_path,
       metric_set.insert(Metric::PODF);
     } else if (!index.compare("RATIO")) {
       metric_set.insert(Metric::RATIO);
+    } else if (!index.compare("RCD")) {
+      metric_set.insert(Metric::RCD);
     }
   }
   // If distribution is specified

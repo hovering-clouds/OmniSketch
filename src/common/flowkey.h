@@ -10,6 +10,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 namespace OmniSketch {
 /**
@@ -255,6 +256,10 @@ public:
     }
     return *(int8_t *)(key_ + 12);
   }
+  
+  template <int32_t other_len>
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const FlowKey<other_len> &key);
 };
 
 } // namespace OmniSketch
@@ -386,6 +391,16 @@ void FlowKey<key_len>::setBit(int32_t pos, bool one) {
   } else {
     key_[BYTE(pos)] &= ~(1 << BIT(pos));
   }
+}
+
+template <int32_t key_len>
+std::ostream &operator<<(std::ostream &os, const FlowKey<key_len> &key) {
+  os << "0x";
+  for (int32_t i = 0; i < key_len; ++i) {
+    os << std::hex << (uint16_t)(uint8_t)key.key_[i];
+  }
+  os << ' ' << std::dec;
+  return os;
 }
 
 } // namespace OmniSketch

@@ -45,7 +45,8 @@ enum Metric {
   DIST /** distribution of error (vector) */,
   PODF /** portion of desired flow (in percentile) */,
   RATIO /** decoded ratio (in percentile), i.e., the ratio of #(decoded flows)
-           in ground truth to #flows */
+           in ground truth to #flows */,
+  RCD /** record truth and measured value*/
   ,
 };
 
@@ -561,6 +562,11 @@ void TestBase<key_len, T>::testQuery(
   DEFINE_TIMERS;
   double ARE = 0.0, AAE = 0.0, corr = 0, podf_cnt = 0;
   const bool measure_dist = metric_vec.in(Metric::DIST);
+  const bool record_val = metric_vec.in(Metric::RCD);
+  std::ofstream outf;
+  if(record_val){
+    outf.open("record.txt", std::ios::out);
+  }
   std::vector<double> dist(metric_vec.quantiles.size()); // zero initialized
 
   for (const auto &kv : gnd_truth) {
@@ -574,6 +580,9 @@ void TestBase<key_len, T>::testQuery(
       podf_cnt += 1.0;
     ARE += RE;
     AAE += std::abs(kv.get_right() - estimated_size);
+    if (record_val) {
+      outf << kv.get_right() << ' ' << estimated_size << std::endl;
+    }
     corr += (kv.get_right() == estimated_size);
     // update Distribution
     if (measure_dist) {
@@ -582,6 +591,7 @@ void TestBase<key_len, T>::testQuery(
       dist[ptr - metric_vec.quantiles.begin()] += 1.0;
     }
   }
+  if(record_val){outf.close();}
   // add statistics
   if (metric_vec.in(Metric::RATE)) {
     query[Metric::RATE] = 1.0 * gnd_truth.size() / TIMER_RESULT * 1e6;
@@ -649,7 +659,11 @@ void TestBase<key_len, T>::testHeavyHitter(
     double threshold, Data::GndTruth<key_len, T> gnd_truth_heavy_hitters) {
   // config
   MetricVec metric_vec(config_file, test_path, "heavyhitter");
-
+  const bool record_val = metric_vec.in(Metric::RCD);
+  std::ofstream outf;
+  if(record_val){
+    outf.open("recordhh.txt", std::ios::out);
+  }
   double TP = 0.0, FP = 0.0, FN = 0.0, ARE = 0.0;
 
   DEFINE_TIMERS;
@@ -659,16 +673,37 @@ void TestBase<key_len, T>::testHeavyHitter(
 
   for (const auto &kv : gnd_truth_heavy_hitters) {
     if (detected.count(kv.get_left())) {
+      if(record_val)
+        outf << "TP: " << kv.get_left() << ' ' << kv.get_right() << ' ' << detected.at(kv.get_left()) << std::endl;
       TP += 1.0;
       ARE += static_cast<double>(
                  std::abs(detected.at(kv.get_left()) - kv.get_right())) /
              kv.get_right();
     } else {
+      if(record_val)
+        outf << "FN: " << kv.get_left() << ' ' << kv.get_right() << std::endl;
       FN += 1.0;
     }
+  } 
+  if(record_val)
+    for (const auto &kv : detected) {
+      if(gnd_truth_heavy_hitters.count(kv.get_left())==0){
+        outf << "FP: " << kv.get_left() << ' ' << kv.get_right() << std::endl;
+      }
+    }
+  if (record_val) {
+    outf << "gnd_truth" << std::endl;
+    for (const auto &kv : gnd_truth_heavy_hitters) {
+      outf << kv.get_left() << kv.get_right() << std::endl;
+    }
+    outf << "detected" << std::endl;
+    for (const auto &kv : detected) {
+      outf << kv.get_left() << kv.get_right() << std::endl;
+    }
+    outf << std::endl;
   }
-  FP = detected.size() - TP;
 
+  FP = detected.size() - TP;
   double precision = TP / (TP + FP);
   double recall = TP / (TP + FN);
 
