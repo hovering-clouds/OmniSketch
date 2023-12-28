@@ -155,7 +155,7 @@ public:
    * @brief dump restored counters
    * 
    */
-  void dump_results();
+  void dump_results(std::ofstream& outf);
   void query_map_values(int32_t idx);
 };
 
@@ -322,7 +322,7 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
         // the solution is new_id % mod*g == g*g_inv*id+mod*mod_inv*gp_id
         for(uint32_t id:lastids){
           int32_t gp_id = j-cumnum[i];
-          int32_t new_id = (g*g_inv*id+mod*mod_inv*gp_id)%(mod*g);
+          int32_t new_id = ((int64_t)g*g_inv*id+(int64_t)mod*mod_inv*gp_id)%(mod*g);
           if(new_id<N) // only solutions that less than N are valid
             ids.push_back(new_id);
         }
@@ -435,6 +435,7 @@ void ACScounter<T>::restore_small(){
       min_cnt = std::min(min_cnt, counter[counter_id]);
     }
     restored_value[id] = std::min(K*min_cnt ,std::max(T(tmpcnt),0));
+    //restored_value[id] = std::max(T(tmpcnt),0);
     unrestored-=1;
     is_restored[id] = true;
   }
@@ -472,6 +473,7 @@ void ACScounter<T>::update(int32_t idx,T val){
   if(use_shadow&&!shadow[idx].overflow()){ // update shadow counter
     shadow[idx].update(val);
   } else { // update shared counter
+    //int gp = (random())%K;
     int gp = update_cnt%K;
     counter[cumnum[gp]+idx%gpnum[gp]] += val;
   }
@@ -525,10 +527,10 @@ void ACScounter<T>::restore(){
   double theta = 0.1;
   for(int32_t i = 0;i<iter_num;++i){
     getLargeId(large_list, theta, GetIdMethod::theta);
+    theta/=decay_ratio;
     if(large_list.size()==0)
       continue;
     restore_large(large_list, clip);
-    theta/=decay_ratio;
   }
   #else
   const int32_t iter_num = 20;
@@ -593,11 +595,11 @@ void ACScounter<T>::clear(){
 }
 
 template <typename T>
-void ACScounter<T>::dump_results(){
+void ACScounter<T>::dump_results(std::ofstream& outf){
   for(int i = 0;i<N;++i){
-    printf("%d ", restored_value[i]);
+    outf << restored_value[i] << ' ';
     if(i%100==99)
-      printf("\n");
+      outf << std::endl;
   }
 }
 
