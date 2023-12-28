@@ -320,6 +320,7 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
     if(counter[j]>=thre)
       lastids.push_back(j);
   int32_t i = 1, mod = gpnum[0];
+  bool overflow = false;
   // step1&2
   while(i<K){
     int32_t g_inv, mod_inv;
@@ -346,7 +347,7 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
     ids.swap(lastids);
     ids.clear();
     i+=1;
-    if(mod>N/g) {break;}
+    if(mod>N/g) {overflow=true; break;} // 不能调整这两行顺序，防止溢出
     else {mod*=g;}
   }
   // step3
@@ -363,6 +364,16 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
     ids.swap(lastids);
     ids.clear();
     i+=1;
+  }
+  if(!overflow){ // if mod still < N, the equations are under-determined, need to add other solutions
+    for(int32_t id:lastids){
+      while(id<N){
+        ids.push_back(id);
+        id+=mod;
+      }
+    }
+    ids.swap(lastids);
+    ids.clear();
   }
   // step4: remove the counter ids that has been restored
   if(is_restored!=NULL){

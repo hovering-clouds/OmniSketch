@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
+#include <iomanip>
 
 namespace OmniSketch {
 /**
@@ -395,11 +396,11 @@ void FlowKey<key_len>::setBit(int32_t pos, bool one) {
 
 template <int32_t key_len>
 std::ostream &operator<<(std::ostream &os, const FlowKey<key_len> &key) {
-  os << "0x";
+  os << "0x" << std::setfill('0');
   for (int32_t i = 0; i < key_len; ++i) {
-    os << std::hex << (uint16_t)(uint8_t)key.key_[i];
+    os << std::setw(2) << std::hex << (uint16_t)(uint8_t)key.key_[i];
   }
-  os << ' ' << std::dec;
+  os << ' ' << std::dec << std::setfill(' ');
   return os;
 }
 

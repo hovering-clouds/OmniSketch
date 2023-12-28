@@ -79,7 +79,7 @@
       threshold_heavy_hitter = 0.0009173226287898038
     [ACS.CMHEAP.test]
       update = ["RATE"]
-      query = ["RATE", "ARE", "AAE"]
+      query = ["RATE", "ARE", "AAE", "RCD"]
       heavyhitter = ["TIME", "ARE", "PRC", "RCL", "RCD"]
 
   [ACS.FlowRadar]

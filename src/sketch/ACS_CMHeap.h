@@ -104,7 +104,8 @@ void ACS_CMHeap<key_len, T, hash_t>::update(const FlowKey<key_len> &flowkey,
     int32_t index = hash_fns[i](flowkey) % width + i*width + offset;
     counter.update(index, val);
     T estval = est(flowkey);
-    if(estval>=pre_thre){key_rec.insert(flowkey);}
+    if(estval>=pre_thre)
+      key_rec.insert(flowkey);
   }
   
 }
