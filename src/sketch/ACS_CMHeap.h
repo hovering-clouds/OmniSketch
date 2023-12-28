@@ -11,8 +11,7 @@
 #include "common/hash.h"
 #include <common/sketch.h>
 #include <common/ACScounter.h>
-#include <queue>
-#include <map>
+#include <unordered_set>
 
 namespace OmniSketch::Sketch {
 /**
@@ -25,27 +24,15 @@ namespace OmniSketch::Sketch {
 template <int32_t key_len, typename T, typename hash_t = Hash::AwareHash>
 class ACS_CMHeap : public SketchBase<key_len, T> {
 private:
-  class Item{
-  private:
-    FlowKey key;
-    T val;
-  public:
-    Item(FlowKey& key_, T val_): key(key_), val(val_) {};
-    ~Item(){};
-    bool operator<(const Item& other) const {
-      return this->val<other.val;
-    }
-    bool operator>(const Item& other) const {
-      return this->val>other.val;
-    }
-  };
 
   int32_t depth;
   int32_t width;
+  int32_t total_val;
+  int32_t pre_thre;
   const int32_t offset;
   hash_t *hash_fns;
   Counter::ACScounter<T>& counter;
-  std::priority_queue<Item, std::vector<Item>, std::greater<Item>> heap;
+  std::unordered_set<FlowKey<key_len>> key_rec;
 
   ACS_CMHeap(const ACS_CMHeap &) = delete;
   ACS_CMHeap(ACS_CMHeap &&) = delete;
@@ -56,7 +43,7 @@ public:
    * @param width_ should be prime number to reduce hash collision
    *
    */
-  ACS_CMHeap(int32_t depth_, int32_t width_, int32_t _offset, Counter::ACScounter<T>& counter_);
+  ACS_CMHeap(int32_t depth_, int32_t width_, int32_t pre_thre_, int32_t _offset, Counter::ACScounter<T>& counter_);
   /**
    * @brief Release the pointer
    *
@@ -73,7 +60,9 @@ public:
    */
   T query(const FlowKey<key_len> &flowkey) const override;
 
-  T est(const FlowKey<key_len> &flowkey) const override;
+  T est(const FlowKey<key_len> &flowkey) const;
+
+  Data::Estimation<key_len, T> getHeavyHitter(double threshold) const override;
   /**
    * @brief Get the size of the sketch
    *
@@ -93,8 +82,11 @@ public:
 namespace OmniSketch::Sketch {
 
 template <int32_t key_len, typename T, typename hash_t>
-ACS_CMHeap<key_len, T, hash_t>::ACS_CMHeap(int32_t depth_, int32_t width_, int32_t _offset, Counter::ACScounter<T> &counter_)
+ACS_CMHeap<key_len, T, hash_t>::ACS_CMHeap(int32_t depth_, int32_t width_,
+    int32_t pre_thre_, int32_t _offset, Counter::ACScounter<T> &counter_)
     : depth(depth_), width(width_), counter(counter_), offset(_offset){
+  pre_thre = pre_thre_;
+  total_val = 0;
   hash_fns = new hash_t[depth];
 }
 
@@ -108,8 +100,11 @@ template <int32_t key_len, typename T, typename hash_t>
 void ACS_CMHeap<key_len, T, hash_t>::update(const FlowKey<key_len> &flowkey,
                                           T val) {
   for (int32_t i = 0; i < depth; ++i) {
+    total_val+=val;
     int32_t index = hash_fns[i](flowkey) % width + i*width + offset;
     counter.update(index, val);
+    T estval = est(flowkey);
+    if(estval>=pre_thre){key_rec.insert(flowkey);}
   }
   
 }
@@ -132,6 +127,20 @@ T ACS_CMHeap<key_len, T, hash_t>::est(const FlowKey<key_len> &flowkey) const {
     min_val = std::min(min_val, counter.est(index));
   }
   return min_val;
+}
+
+template <int32_t key_len, typename T, typename hash_t>
+Data::Estimation<key_len, T> ACS_CMHeap<key_len, T, hash_t>::getHeavyHitter(double threshold) const {
+  Data::Estimation<key_len, T> heavy_hitters;
+  for(auto& fk: key_rec){
+    T query_val = query(fk);
+    if(query_val>threshold){
+      if(!heavy_hitters.count(fk)){
+        heavy_hitters[fk] = query_val;
+      }
+    }
+  }
+  return heavy_hitters;
 }
 
 template <int32_t key_len, typename T, typename hash_t>

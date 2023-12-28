@@ -13,6 +13,7 @@
 #include <sketch_test/ACSFlowRadarTest.h>
 #include <sketch_test/ACSHashPipeTest.h>
 #include <sketch_test/ACSDeltoidTest.h>
+#include <sketch_test/ACSCMHeapTest.h>
 
 #define ACS_CONFIG_PATH "ACS.config"
 
@@ -66,6 +67,8 @@ void AdditiveCSTest::initPtr(toml::array& sketch_list,
       testPtr.push_back(std::make_unique<ACSHashPipeTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
     } else if(str.compare("DT")==0){ //Deltoid
       testPtr.push_back(std::make_unique<ACSDeltoidTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
+    } else if(str.compare("CMH")==0){ //Deltoid
+      testPtr.push_back(std::make_unique<ACSCMHeapTest<KEYLEN, COUNTER_TYPR, Hash::AwareHash>>(config_file, data, cnt_method));
     }
   }
 }
