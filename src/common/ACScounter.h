@@ -549,7 +549,7 @@ void ACScounter<T>::restore(){
   } else {
     double rank = init_val;
     for(int32_t i = 0;i<iternum;++i){
-      getLargeId(large_list, rank, GetIdMethod::theta);
+      getLargeId(large_list, rank, GetIdMethod::rank);
       if(large_list.size()==0)
         continue;
       restore_large(large_list, clip);
