@@ -74,7 +74,7 @@ namespace OmniSketch::Sketch {
 
 template <int32_t key_len, typename T, typename hash_t>
 ACS_CMSketch<key_len, T, hash_t>::ACS_CMSketch(int32_t depth_, int32_t width_, int32_t _offset, Counter::ACScounter<T> &counter_)
-    : depth(depth_), width(width_), counter(counter_), offset(_offset){
+    : depth(depth_), width(Util::NextPrime(width_)), counter(counter_), offset(_offset){
   hash_fns = new hash_t[depth];
 }
 

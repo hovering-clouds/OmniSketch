@@ -61,6 +61,8 @@ public:
    *
    */
   void clear();
+
+  void dump_results() const;
 };
 
 } // namespace OmniSketch::Sketch
@@ -114,6 +116,8 @@ T CMSketch<key_len, T, hash_t>::query(const FlowKey<key_len> &flowkey) const {
 
 template <int32_t key_len, typename T, typename hash_t>
 size_t CMSketch<key_len, T, hash_t>::size() const {
+  dump_results();
+  printf("width %d, depth %d\n", width, depth);
   return sizeof(*this)                // instance
          + sizeof(hash_t) * depth     // hashing class
          + sizeof(T) * depth * width; // counter
@@ -122,6 +126,18 @@ size_t CMSketch<key_len, T, hash_t>::size() const {
 template <int32_t key_len, typename T, typename hash_t>
 void CMSketch<key_len, T, hash_t>::clear() {
   std::fill(counter[0], counter[0] + depth * width, 0);
+}
+
+template <int32_t key_len, typename T, typename hash_t>
+void CMSketch<key_len, T, hash_t>::dump_results() const{
+  std::ofstream outf("cm_counter.txt", std::ios::out);
+  for(int i = 0; i<depth;++i){
+    for(int j = 0; j<width;++j){
+      outf << counter[i][j] << ' ';
+      if((i*width+j)%100==99)
+        outf << std::endl;
+    }
+  }
 }
 
 } // namespace OmniSketch::Sketch
