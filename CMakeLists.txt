@@ -104,6 +104,7 @@ endfunction(add_user_sketch)
 add_user_sketch(CM CMSketch)
 add_user_sketch(FR FlowRadar)
 add_user_sketch(HP HashPipe)
+add_user_sketch(DT Deltoid)
 
 # Additive Counter Sharing
 add_executable(ACS ${CMAKE_CURRENT_SOURCE_DIR}/src/AdditiveCS/TestAdditiveCS.cpp)
