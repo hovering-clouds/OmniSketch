@@ -10,6 +10,7 @@
 #include "test_factory.h"
 #include <common/ACScounter.h>
 using OmniSketch::Counter::ACScounter;
+using OmniSketch::Counter::GetIdMethod;
 using OmniSketch::Counter::ShadowCounter;
 
 void TestInit() {
@@ -74,7 +75,7 @@ void TestGetLargeId() {
   ac.setCounter(ac.cumnum[5]+27,10);
   ac.setCounter(ac.cumnum[5]+17,10);
   std::vector<int32_t> lst;
-  ac.getLargeId(lst, 0.1, ACScounter<int32_t>::GetIdMethod::theta);
+  ac.getLargeId(lst, 0.1, GetIdMethod::theta);
   std::sort(lst.begin(),lst.end());
   VERIFY(lst.size()==3);
   VERIFY(lst[0]==0);
@@ -83,13 +84,13 @@ void TestGetLargeId() {
   ac.setCounter(ac.cumnum[0], 1);
   ac.setCounter(ac.cumnum[4]+8, 1);
   ac.setCounter(ac.cumnum[5]+17, 0);
-  ac.getLargeId(lst, 0.1, ACScounter<int32_t>::GetIdMethod::rank);
+  ac.getLargeId(lst, 0.1, GetIdMethod::rank);
   std::sort(lst.begin(),lst.end());
   VERIFY(lst.size()==3);
   VERIFY(lst[0]==0);
   VERIFY(lst[1]==101);
   VERIFY(lst[2]==202);
-  ac.getLargeId(lst, 0.1, ACScounter<int32_t>::GetIdMethod::theta);
+  ac.getLargeId(lst, 0.1, GetIdMethod::theta);
   VERIFY(lst.size()==0);
   std::cout << "pass test_large_id" << std::endl;
 }

@@ -53,6 +53,11 @@
     data = "../data/data-100K.bin"
     cnt_method = "InPacket"
     format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
+    get_method = "THETA_METHOD"
+    iternum = 4
+    init_val = 0.1
+    step_val = 2.0
+    clip = 0
     ratio = 4
     K = 4
 

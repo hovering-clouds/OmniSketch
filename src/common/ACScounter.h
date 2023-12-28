@@ -8,7 +8,6 @@
  */
 #pragma once
 
-#define THETA_METHOD
 #define DEBUG_ACS
 #include "utils.h"
 #include <numeric>
@@ -45,6 +44,11 @@ public:
 };
 
 /**
+ * @brief how we decide whether a counter should be considered as large, used in `getLargeId`
+ */
+enum class GetIdMethod{theta, rank};
+
+/**
  * @brief Additive Counter Sharing.
  * @note All counter values stored inside are considered as NON-NEGATIVE values.
  * 
@@ -60,11 +64,16 @@ private:
   bool is_initialized; // if parameters has been initialized
   bool restore_inited; // if restored_counter has been allocated
   bool use_shadow; // if use shadow counter
+  GetIdMethod method; // which method to use in locating large counters
   int32_t N; // number of virtual counter
   int32_t M; // number of physical counter
   int32_t K; // number of group
+  int32_t clip; // number of clipped group, used in restore_small
+  int32_t iternum; // number of iteration in locating large counters
   uint32_t update_cnt; // used as a 'pseudo random number' to select which counter to update
   uint32_t unrestored; // number of unrestored counter, i.e. sum of shared_cnt
+  double init_val; // the initial value of the parameter in locating large counters
+  double step_val; // after each iteration, the value of the parameter in locating large counters should be changed
   T total_cnt; // totoal updated value
   int32_t* gpnum; // counter number in each group
   int32_t* cumnum; // cumulative sum of `gpnum`, start from 0
@@ -79,11 +88,6 @@ private:
 
   ACScounter(const ACScounter &) = delete;
   ACScounter(ACScounter &&) = delete;
-
-  // how we decide whether a counter should be considered as large
-  // used in `getLargeId`
-  enum class GetIdMethod{theta, rank};
-
   void initRestore();
   void preShadow();
   void postShadow();
@@ -105,7 +109,9 @@ public:
    * @brief Construct ACScounter and calculate some config params, e.g. `gpnum`
    * 
    */
-  ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len = 0);
+  ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len = 0,
+             GetIdMethod method_ = GetIdMethod::theta, int32_t iter_num_ = 2,
+             int32_t clip_= 0, double init_val_ = 0.1, double step_val_ = 2.0);
 
   /**
    * @brief Construct an empty ACScounter array, need to initialize later 
@@ -123,7 +129,9 @@ public:
    * @brief initialize empty counter array, do exactly as the Constructor method 
    * 
    */
-  void initParam(int32_t n, int32_t m, int32_t k, int32_t shadow_len = 0);
+  void initParam(int32_t n, int32_t m, int32_t k,  int32_t shadow_len,
+                 GetIdMethod method_, int32_t iter_num_, int32_t clip_,
+                 double init_val_, double step_val_);
 
   /**
    * @brief update counter
@@ -165,14 +173,15 @@ namespace OmniSketch::Counter {
 size_t ShadowCounter::len;
 
 template <typename T>
-ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len)
-  :shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL) {
+ACScounter<T>::ACScounter(int32_t n, int32_t m, int32_t k, int32_t shadow_len, GetIdMethod method_,
+                          int32_t iter_num_, int32_t clip_, double init_val_, double step_val_)
+  :shared_cnt(NULL), restored_value(NULL), is_restored(NULL), shadow(NULL){
   update_cnt = 0;
   total_cnt = 0;
   use_shadow = false;
   is_initialized = false;
   restore_inited = false;
-  initParam(n,m,k,shadow_len);
+  initParam(n,m,k,shadow_len,method_,iter_num_,clip_,init_val_,step_val_);
 }
 
 template <typename T>
@@ -186,9 +195,16 @@ ACScounter<T>::ACScounter()
 }
 
 template <typename T>
-void ACScounter<T>::initParam(int32_t n, int32_t m, int32_t k, int32_t shadow_len){
+void ACScounter<T>::initParam(int32_t n, int32_t m, int32_t k,  int32_t shadow_len,
+                              GetIdMethod method_, int32_t iter_num_, int32_t clip_,
+                              double init_val_, double step_val_){
   assert(!is_initialized);
   is_initialized = true;
+  method = method_;
+  iternum = iter_num_;
+  step_val = step_val_;
+  init_val = init_val_;
+  clip = clip_;
   N = n;
   K = k;
   gpnum = new int32_t[K];
@@ -281,7 +297,7 @@ void ACScounter<T>::preShadow(){
 }
 
 template <typename T>
-void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMethod method){
+void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMethod use_method){
   // here we assume type T (some numeric type) is big enough to store the sum
   if(unrestored==0){ // corner case
     id_list.clear();
@@ -295,7 +311,7 @@ void ACScounter<T>::getLargeId(std::vector<int32_t>& id_list, double tr, GetIdMe
   // 1. find the minimum n such that $\prod_{i=0}^{n} gpnum[i]$ >= N;
   // 2. use Chinese Remainder Theorem to get the candidate ids for the first n groups;
   // 3. use remained groups to check whether the ids from step 2 is truly of large counters;
-  if(method==GetIdMethod::theta){
+  if(use_method==GetIdMethod::theta){
     thre = T(tr*sum/K+(mu/K)*(unrestored/gpnum[0]));
   } else {
     thre = Util::getNthLargestElem(counter, counter+cumnum[1], (size_t)(tr*gpnum[0]));
@@ -398,7 +414,7 @@ void ACScounter<T>::restore_large(const std::vector<int32_t>& id_list, int32_t c
       --end;
     }
     restored_value[id] = T(std::accumulate(begin,end,0.0)*K/(K-2*clip));
-    //printf("large %d, val %d\n", id, restored_value[id]);
+    printf("large %d, val %d\n", id, restored_value[id]);
   }
   // step3. subtract restored large values from `counter` array
   for(int32_t id: id_list){
@@ -473,8 +489,8 @@ void ACScounter<T>::update(int32_t idx,T val){
   if(use_shadow&&!shadow[idx].overflow()){ // update shadow counter
     shadow[idx].update(val);
   } else { // update shared counter
-    //int gp = (random())%K;
-    int gp = update_cnt%K;
+    int gp = (random())%K;
+    //int gp = update_cnt%K; DO NOT USE THIS!
     counter[cumnum[gp]+idx%gpnum[gp]] += val;
   }
 }
@@ -521,31 +537,26 @@ void ACScounter<T>::restore(){
   std::vector<int32_t> large_list;
   const int32_t clip = 0;
 
-  #ifdef THETA_METHOD
-  const int32_t iter_num = 2;
-  const int32_t decay_ratio = 2;
-  double theta = 0.1;
-  for(int32_t i = 0;i<iter_num;++i){
-    getLargeId(large_list, theta, GetIdMethod::theta);
-    theta/=decay_ratio;
-    if(large_list.size()==0)
-      continue;
-    restore_large(large_list, clip);
-  }
-  #else
-  const int32_t iter_num = 20;
-  const double incr_rank = 0.02;
-  double rank = 0.02;
-  for(int32_t i = 0;i<iter_num;++i){
-    getLargeId(large_list, rank, GetIdMethod::rank);
-    if(large_list.size()==0)
-      continue;
-    restore_large(large_list, clip);
-    rank+=incr_rank;
-    small_num-=large_list.size();
-  }
-  #endif
-  
+  if(method==GetIdMethod::theta){
+    double theta = init_val;
+    for(int32_t i = 0;i<iternum;++i){
+      getLargeId(large_list, theta, GetIdMethod::theta);
+      theta/=step_val;
+      if(large_list.size()==0)
+        continue;
+      restore_large(large_list, clip);
+    }
+  } else {
+    double rank = init_val;
+    for(int32_t i = 0;i<iternum;++i){
+      getLargeId(large_list, rank, GetIdMethod::theta);
+      if(large_list.size()==0)
+        continue;
+      restore_large(large_list, clip);
+      rank+=step_val;
+      //small_num-=large_list.size();
+    }
+  }  
   // step3. restore small counters
   restore_small();
   if(use_shadow)

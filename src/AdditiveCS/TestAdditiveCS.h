@@ -71,9 +71,11 @@ void AdditiveCSTest::initPtr(toml::array& sketch_list,
 }
 
 void AdditiveCSTest::runTest() {
+  srand(20231228);
   /// step i: parse ACS param
-  int32_t K, ratio;
-  std::string data_file, method;
+  int32_t K, ratio, iternum, clip;
+  double init_val, step_val;
+  std::string data_file, cmethod, gmethod;
   toml::array sketch_list;
   toml::array fmt_list;
   Util::ConfigParser parser(config_file);
@@ -85,6 +87,14 @@ void AdditiveCSTest::runTest() {
     return;
   if (!parser.parseConfig(ratio, "ratio"))
     return;
+  if (!parser.parseConfig(iternum, "iternum"))
+    return;
+  if (!parser.parseConfig(clip, "clip"))
+    return;
+  if (!parser.parseConfig(init_val, "init_val"))
+    return;
+  if (!parser.parseConfig(step_val, "step_val"))
+    return;
   if (!parser.parseConfig(data_file, "data"))
     return;
   if (!parser.parseConfig(sketch_list, "sketch"))
@@ -93,10 +103,16 @@ void AdditiveCSTest::runTest() {
     return;
   Data::DataFormat format(fmt_list);
   Data::CntMethod cnt_method = Data::InLength;
-  if (!parser.parseConfig(method, "cnt_method"))
+  Counter::GetIdMethod get_method = Counter::GetIdMethod::rank;
+  if (!parser.parseConfig(cmethod, "cnt_method"))
     return;
-  if (!method.compare("InPacket")) {
+  if (!parser.parseConfig(gmethod, "get_method"))
+    return;
+  if (!cmethod.compare("InPacket")) {
     cnt_method = Data::InPacket;
+  }
+  if (!gmethod.compare("THETA_METHOD")) {
+    get_method = Counter::GetIdMethod::theta;
   }
 
   /// Step ii. prepare data
@@ -112,7 +128,7 @@ void AdditiveCSTest::runTest() {
     ptr->initPtr(counter_num, counter, parser);
     counter_num += ptr->getCntNum();
   }
-  counter.initParam(counter_num, counter_num/ratio, K);
+  counter.initParam(counter_num, counter_num/ratio, K, 0, get_method, iternum, clip, init_val, step_val);
   for(auto&& ptr: testPtr){
     ptr->doUpdate();
   }
@@ -126,8 +142,8 @@ void AdditiveCSTest::runTest() {
   for(auto&& ptr: testPtr){
     ptr->runTest();
   }
-  //std::ofstream outf("tmp2.txt", std::ios::out);
-  //counter.dump_results(outf);
+  std::ofstream outf("tmp.txt", std::ios::out);
+  counter.dump_results(outf);
   return;
 }
 
