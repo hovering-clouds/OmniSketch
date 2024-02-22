@@ -53,10 +53,10 @@
     data = "../data/data-100K.bin"
     cnt_method = "InPacket"
     format = [["flowkey", "padding", "timestamp", "length", "padding"], [13, 3, 8, 2, 6]]
-    get_method = "THETA_METHOD"
-    iternum = 4
-    init_val = 0.1
-    step_val = 2.0
+    get_method = "THET_METHOD"
+    iternum = 1
+    init_val = 0.01
+    step_val = 0.01
     clip = 0
     ratio = 4
     K = 4
@@ -77,6 +77,7 @@
     [ACS.CMHEAP.data]
       hx_method = "Percentile"
       threshold_heavy_hitter = 0.0009173226287898038
+      #threshold_heavy_hitter = 0.0005
     [ACS.CMHEAP.test]
       update = ["RATE"]
       query = ["RATE", "ARE", "AAE", "RCD"]
